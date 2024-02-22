@@ -18,13 +18,19 @@ contract HalbornLoans is Initializable, UUPSUpgradeable, MulticallUpgradeable {
     mapping(address => uint256) public usedCollateral;
     mapping(uint256 => address) public idsCollateral;
     
-    // @follow-up will the constructor be called as normal, and will collateralPrice_ actually be set?
-    // - if not, the price will be the default value of 0
+    // @audit using the constructor to set collateralPrice with the proxy will not update the value
+    // - use the initialize function to set the collateralPrice
     constructor(uint256 collateralPrice_) {
+        // @audit there is no way to update the collateral price after deployment
+        // - protocol operators cannot adjust to market changes in case of supply/demand changes
         collateralPrice = collateralPrice_;
     }
 
-    // @audit the initialize function be called by anyone, thus `token` and `nft` can be set by anyone
+
+    // @note if the example in test/Halborn.t.sol is how these contracts are expected deployed (ie. using `forge script`), 
+    // without deploying/configuring the proxy contract, then:
+    // - the initialize function can be front-run, and since the initialize function be called by anyone, 
+    //   `token` and `nft` can be set by anyone
     function initialize(address token_, address nft_) public initializer {
         __UUPSUpgradeable_init();
         __Multicall_init();
