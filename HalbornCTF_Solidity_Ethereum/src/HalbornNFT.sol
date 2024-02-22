@@ -13,13 +13,14 @@ contract HalbornNFT is
     ERC721Upgradeable,
     UUPSUpgradeable,
     OwnableUpgradeable,
-    MulticallUpgradeable
+    MulticallUpgradeable // @follow-up what is the point of multicall here?
 {
     bytes32 public merkleRoot;
 
     uint256 public price;
     uint256 public idCounter;
 
+    // @audit the initialize function be called by anyone, thus `token` and `nft` can be set by anyone
     function initialize(
         bytes32 merkleRoot_,
         uint256 price_
@@ -38,13 +39,17 @@ contract HalbornNFT is
         price = price_;
     }
 
+    // @audit anyone can set the merkle root
     function setMerkleRoot(bytes32 merkleRoot_) public {
         merkleRoot = merkleRoot_;
     }
 
+    // @audit anyone can set a merkle root w/ setMerkleRoot and then mint an airdrop
     function mintAirdrops(uint256 id, bytes32[] calldata merkleProof) external {
         require(_exists(id), "Token already minted");
 
+        // @follow-up collisions occur here w/ encodePacked -> msg.sender + id? 
+        // @follow-up if mintAirdrops is frontrun, does this fail?
         bytes32 node = keccak256(abi.encodePacked(msg.sender, id));
         bool isValidProof = MerkleProofUpgradeable.verifyCalldata(
             merkleProof,
@@ -69,6 +74,8 @@ contract HalbornNFT is
     function withdrawETH(uint256 amount) external onlyOwner {
         payable(owner()).transfer(amount);
     }
-
+   
+    // @audit this lacks an access modifier, so the contract could be upgraded to a malicious implementation
+    // https://docs.openzeppelin.com/contracts/4.x/api/proxy#UUPSUpgradeable-_authorizeUpgrade-address-:~:text=The%20_authorizeUpgrade%20function%20must%20be%20overridden%20to%20include%20access%20restriction%20to%20the%20upgrade%20mechanism.
     function _authorizeUpgrade(address) internal override {}
 }

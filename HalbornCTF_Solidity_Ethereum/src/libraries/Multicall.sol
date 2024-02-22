@@ -10,6 +10,9 @@ abstract contract MulticallUpgradeable is Initializable {
 
     function __Multicall_init_unchained() internal onlyInitializing {}
 
+    // @audit can this be used to call withdraw/deposit multiple times with the same msg.value?
+    // - delegatecall used internally
+    // - would affect mint/burn functions
     function multicall(
         bytes[] calldata data
     ) external payable returns (bytes[] memory results) {
