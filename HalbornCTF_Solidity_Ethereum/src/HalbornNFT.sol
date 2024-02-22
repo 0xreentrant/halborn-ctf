@@ -13,7 +13,7 @@ contract HalbornNFT is
     ERC721Upgradeable,
     UUPSUpgradeable,
     OwnableUpgradeable,
-    MulticallUpgradeable // @follow-up what is the point of multicall here?
+    MulticallUpgradeable
 {
     bytes32 public merkleRoot;
 

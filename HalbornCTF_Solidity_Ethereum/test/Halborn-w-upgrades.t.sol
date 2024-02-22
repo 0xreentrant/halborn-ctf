@@ -2,58 +2,30 @@
 pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
-import {Merkle} from "./murky/Merkle.sol";
+import "openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
-import {HalbornNFT} from "../src/HalbornNFT.sol";
-import {HalbornToken} from "../src/HalbornToken.sol";
 import {HalbornLoans} from "../src/HalbornLoans.sol";
+import {HalbornLoansUpgrade} from "../src/HalbornLoans-upgrade.sol";
 
-contract HalbornTest is Test {
-    address public immutable ALICE = makeAddr("ALICE");
-    address public immutable BOB = makeAddr("BOB");
-
-    bytes32[] public ALICE_PROOF_1;
-    bytes32[] public ALICE_PROOF_2;
-    bytes32[] public BOB_PROOF_1;
-    bytes32[] public BOB_PROOF_2;
-
-    HalbornNFT public nft;
-    HalbornToken public token;
+contract HalbornTestUpgrades is Test {
     HalbornLoans public loans;
 
     function setUp() public {
-        // Initialize
-        Merkle m = new Merkle();
-        // Test Data
-        bytes32[] memory data = new bytes32[](4);
-        data[0] = keccak256(abi.encodePacked(ALICE, uint256(15)));
-        data[1] = keccak256(abi.encodePacked(ALICE, uint256(19)));
-        data[2] = keccak256(abi.encodePacked(BOB, uint256(21)));
-        data[3] = keccak256(abi.encodePacked(BOB, uint256(24)));
+        HalbornLoans impl = new HalbornLoans(2 ether); // w/ same original constructor param
+        ERC1967Proxy proxy = new ERC1967Proxy(
+            address(impl), 
+            abi.encodeWithSignature("initialize(address,address)", address(1), address(2))
+        );
 
-        // Get Merkle Root
-        bytes32 root = m.getRoot(data);
+        loans = HalbornLoans(address(proxy));
 
-        // Get Proofs
-        ALICE_PROOF_1 = m.getProof(data, 0);
-        ALICE_PROOF_2 = m.getProof(data, 1);
-        BOB_PROOF_1 = m.getProof(data, 2);
-        BOB_PROOF_2 = m.getProof(data, 3);
+        console.log(loans.collateralPrice());
+    }
 
-        assertTrue(m.verifyProof(root, ALICE_PROOF_1, data[0]));
-        assertTrue(m.verifyProof(root, ALICE_PROOF_2, data[1]));
-        assertTrue(m.verifyProof(root, BOB_PROOF_1, data[2]));
-        assertTrue(m.verifyProof(root, BOB_PROOF_2, data[3]));
-
-        nft = new HalbornNFT();
-        nft.initialize(root, 1 ether);
-
-        token = new HalbornToken();
-        token.initialize();
-
-        loans = new HalbornLoans(2 ether);
-        //loans.initialize(address(token), address(nft));
-
-        token.setLoans(address(loans));
+    function testUpgradeLoans() public {
+        HalbornLoansUpgrade newImpl = new HalbornLoansUpgrade(1337 ether);
+        loans.upgradeTo(address(newImpl));
+        console.log(loans.collateralPrice());
+        assertTrue(newImpl.isSuccessfulUpgrade());
     }
 }
