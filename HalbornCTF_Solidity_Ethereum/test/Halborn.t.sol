@@ -52,8 +52,48 @@ contract HalbornTest is Test {
         token.initialize();
 
         loans = new HalbornLoans(2 ether);
-        //loans.initialize(address(token), address(nft));
+        loans.initialize(address(token), address(nft));
 
         token.setLoans(address(loans));
+    }
+
+    function testFailHalbornLoansERC721Receiver() public {
+        vm.deal(ALICE, 1 ether);
+        vm.startPrank(ALICE);
+        
+        nft.mintBuyWithETH{value: 1 ether}();
+        assertTrue(nft.balanceOf(ALICE) == 1); 
+
+        uint256 id = nft.idCounter();
+        assertTrue(nft.ownerOf(1) == ALICE);
+
+        nft.approve(address(loans), id);
+        assertTrue(nft.getApproved(id) == address(loans));
+
+        loans.depositNFTCollateral(id);
+    }
+
+    function testRepayingFailsSimpleExample() public {
+        // simulate/support only 1 depositor
+        uint256 totalCollateral = 0;
+        uint256 usedCollateral = 0;
+        uint256 collateralPrice = 2 ether;
+
+        // depositor provides NFT, and the totalCollateral is updated
+        totalCollateral += collateralPrice;
+
+        // despositor takes out a loan, and the usedCollateral is updated
+        // getLoan() equivalent to:
+        uint256 loanAmount = 1 ether;
+        usedCollateral += loanAmount;
+
+        // depositor repays the loan, but the usedCollateral grows
+        // returnLoan() equivalent to:
+        uint256 repayAmount = 1 ether;
+        usedCollateral += repayAmount;
+
+        // The depositor expects to have paid off their loan, but the usedCollateral has grown
+        assertTrue(usedCollateral == 0);
+        console.log("expecting usedCollateral to be ~0: ", usedCollateral);
     }
 }

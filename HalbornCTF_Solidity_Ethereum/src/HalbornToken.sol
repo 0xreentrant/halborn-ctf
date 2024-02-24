@@ -21,6 +21,8 @@ contract HalbornToken is
         _;
     }
 
+    // @audit initializers aren't disabled, anyone can call initialize on the implementation contract
+
     function initialize() external initializer {
         __ERC20_init("HalbornToken", "HT");
         __UUPSUpgradeable_init();
@@ -41,7 +43,7 @@ contract HalbornToken is
         _burn(account, amount);
     }
     
-    // @audit this lacks an access modifier, so the contract could be upgraded to a malicious implementation
+    // @audit-issue this lacks an access modifier, so the contract could be upgraded to a malicious implementation
     // https://docs.openzeppelin.com/contracts/4.x/api/proxy#UUPSUpgradeable-_authorizeUpgrade-address-:~:text=The%20_authorizeUpgrade%20function%20must%20be%20overridden%20to%20include%20access%20restriction%20to%20the%20upgrade%20mechanism.
     function _authorizeUpgrade(address) internal override {}
 }

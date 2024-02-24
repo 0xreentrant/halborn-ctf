@@ -20,7 +20,11 @@ contract HalbornNFT is
     uint256 public price;
     uint256 public idCounter;
 
-    // @audit the initialize function be called by anyone, thus `token` and `nft` can be set by anyone
+    // @audit initializers aren't disabled, anyone can call initialize on the implementation contract
+
+    // @audit-ok the initialize function be called by anyone, thus `token` and `nft` can be set by anyone
+    // - only an issue if the deploy mechanics are run non-atomically
+    // - ex: 
     function initialize(
         bytes32 merkleRoot_,
         uint256 price_
@@ -39,13 +43,13 @@ contract HalbornNFT is
         price = price_;
     }
 
-    // @audit anyone can set the merkle root
+    // @audit-issue anyone can set the merkle root
     function setMerkleRoot(bytes32 merkleRoot_) public {
         merkleRoot = merkleRoot_;
     }
 
-    // @audit anyone can set a merkle root w/ setMerkleRoot and then mint an airdrop
     function mintAirdrops(uint256 id, bytes32[] calldata merkleProof) external {
+        // @audit-issue nobody can mint their airdrop because _exists(id) is false for unminted ids
         require(_exists(id), "Token already minted");
 
         // @follow-up collisions occur here w/ encodePacked -> msg.sender + id? 
@@ -75,7 +79,13 @@ contract HalbornNFT is
         payable(owner()).transfer(amount);
     }
    
-    // @audit this lacks an access modifier, so the contract could be upgraded to a malicious implementation
+    // @audit-issue this lacks an access modifier, so the contract could be upgraded to a malicious implementation
     // https://docs.openzeppelin.com/contracts/4.x/api/proxy#UUPSUpgradeable-_authorizeUpgrade-address-:~:text=The%20_authorizeUpgrade%20function%20must%20be%20overridden%20to%20include%20access%20restriction%20to%20the%20upgrade%20mechanism.
     function _authorizeUpgrade(address) internal override {}
+
+    // @follow-up who can renounce ownership? (also the other contracts)
+    // ex: https://solodit.xyz/issues/contract-admin-can-revoke-and-renounce-himself-halborn-seascape-ninja-spin-pdf
+
+    // @follow-up can ownership be transferred?
+    // @follow-up can anyone call selfdestruct?
 }

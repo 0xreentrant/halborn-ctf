@@ -18,7 +18,7 @@ contract HalbornLoans is Initializable, UUPSUpgradeable, MulticallUpgradeable {
     mapping(address => uint256) public usedCollateral;
     mapping(uint256 => address) public idsCollateral;
     
-    // @audit using the constructor to set collateralPrice with the proxy will not update the value
+    // @follow-up using the constructor to set collateralPrice with the proxy will not update the value
     // - use the initialize function to set the collateralPrice
     constructor(uint256 collateralPrice_) {
         // @audit there is no way to update the collateral price after deployment
@@ -46,8 +46,8 @@ contract HalbornLoans is Initializable, UUPSUpgradeable, MulticallUpgradeable {
             "Caller is not the owner of the NFT"
         );
 
+        // @audit-issue this contract is not an ERC721Receiver, so the transfer will fail
         // @follow-up CEI violation - reentrancy?
-        // - onERC721Received is called, which could be from a malicious contract
         // - could the same id be deposited multiple times?
         nft.safeTransferFrom(msg.sender, address(this), id);
 
@@ -84,13 +84,15 @@ contract HalbornLoans is Initializable, UUPSUpgradeable, MulticallUpgradeable {
         require(usedCollateral[msg.sender] >= amount, "Not enough collateral"); // only allow up to the amount of collateral used
         require(token.balanceOf(msg.sender) >= amount); // prevent more than the balance being burned
         
-        // @audit looks like this should be -=
-        // @follow-up can this brick loans for a user?
+        // @audit-issue H - Repaying loans locks collateral into the protocol
+        // - this should be -=
+        // - this locks collateral into the protocol
+        // - user can only retrieve their initial collateral by depositing subsequent collateral
         usedCollateral[msg.sender] += amount;
         token.burnToken(msg.sender, amount);
     }
 
-    // @audit this lacks an access modifier, so the contract could be upgraded to a malicious implementation
+    // @audit-issue this lacks an access modifier, so the contract could be upgraded to a malicious implementation
     // https://docs.openzeppelin.com/contracts/4.x/api/proxy#UUPSUpgradeable-_authorizeUpgrade-address-:~:text=The%20_authorizeUpgrade%20function%20must%20be%20overridden%20to%20include%20access%20restriction%20to%20the%20upgrade%20mechanism.
     function _authorizeUpgrade(address) internal override {}
 }
