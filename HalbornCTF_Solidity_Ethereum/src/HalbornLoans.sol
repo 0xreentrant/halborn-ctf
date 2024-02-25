@@ -18,16 +18,16 @@ contract HalbornLoans is Initializable, UUPSUpgradeable, MulticallUpgradeable {
     mapping(address => uint256) public usedCollateral;
     mapping(uint256 => address) public idsCollateral;
     
-    // @follow-up using the constructor to set collateralPrice with the proxy will not update the value
+    // @audit-ok using the constructor to set collateralPrice with the proxy will not update the value
     // - use the initialize function to set the collateralPrice
     constructor(uint256 collateralPrice_) {
-        // @audit there is no way to update the collateral price after deployment
+        // @audit-ok there is no way to update the collateral price after deployment
         // - protocol operators cannot adjust to market changes in case of supply/demand changes
         collateralPrice = collateralPrice_;
     }
 
 
-    // @note if the example in test/Halborn.t.sol is how these contracts are expected deployed (ie. using `forge script`), 
+    // @audit-ok if the example in test/Halborn.t.sol is how these contracts are expected deployed (ie. using `forge script`), 
     // without deploying/configuring the proxy contract, then:
     // - the initialize function can be front-run, and since the initialize function be called by anyone, 
     //   `token` and `nft` can be set by anyone
@@ -39,7 +39,6 @@ contract HalbornLoans is Initializable, UUPSUpgradeable, MulticallUpgradeable {
         nft = HalbornNFT(nft_);
     }
 
-    // @follow-up will it revert if the id is already deposited, no reentrancy?
     function depositNFTCollateral(uint256 id) external {
         require(
             nft.ownerOf(id) == msg.sender,
@@ -47,8 +46,8 @@ contract HalbornLoans is Initializable, UUPSUpgradeable, MulticallUpgradeable {
         );
 
         // @audit-issue this contract is not an ERC721Receiver, so the transfer will fail
-        // @follow-up CEI violation - reentrancy?
-        // - could the same id be deposited multiple times?
+        // @audit-ok CEI violation - no reentrancy (onERC721Received is controlled by this contract)
+        // @audit-ok will revert if the id is already deposited & transferred
         nft.safeTransferFrom(msg.sender, address(this), id);
 
         totalCollateral[msg.sender] += collateralPrice;
@@ -63,8 +62,7 @@ contract HalbornLoans is Initializable, UUPSUpgradeable, MulticallUpgradeable {
         );
         require(idsCollateral[id] == msg.sender, "ID not deposited by caller");
 
-        // @follow-up CEI violation - reentrancy?
-        // - onERC721Received is called, which could be from a malicious contract
+        // @audit-issue CEI violation - reentrancy (onERC721Received is called)
         nft.safeTransferFrom(address(this), msg.sender, id);
 
         totalCollateral[msg.sender] -= collateralPrice;
@@ -72,6 +70,8 @@ contract HalbornLoans is Initializable, UUPSUpgradeable, MulticallUpgradeable {
     }
 
     function getLoan(uint256 amount) external {
+        // @audit the equality is reversed, making it "what is left of total collateral must be less than the amount being requested"
+        // - should be >= 
         require(
             totalCollateral[msg.sender] - usedCollateral[msg.sender] < amount,
             "Not enough collateral"
@@ -84,7 +84,7 @@ contract HalbornLoans is Initializable, UUPSUpgradeable, MulticallUpgradeable {
         require(usedCollateral[msg.sender] >= amount, "Not enough collateral"); // only allow up to the amount of collateral used
         require(token.balanceOf(msg.sender) >= amount); // prevent more than the balance being burned
         
-        // @audit-issue H - Repaying loans locks collateral into the protocol
+        // @audit-issue Repaying loans locks collateral into the protocol
         // - this should be -=
         // - this locks collateral into the protocol
         // - user can only retrieve their initial collateral by depositing subsequent collateral

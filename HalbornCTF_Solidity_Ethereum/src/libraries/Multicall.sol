@@ -13,6 +13,7 @@ abstract contract MulticallUpgradeable is Initializable {
     // @audit can this be used to call withdraw/deposit multiple times with the same msg.value?
     // - delegatecall used internally
     // - would affect mint/burn functions
+    // - this can be used to call a malicious function w/ selfdestruct
     function multicall(
         bytes[] calldata data
     ) external payable returns (bytes[] memory results) {

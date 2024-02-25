@@ -52,8 +52,7 @@ contract HalbornNFT is
         // @audit-issue nobody can mint their airdrop because _exists(id) is false for unminted ids
         require(_exists(id), "Token already minted");
 
-        // @follow-up collisions occur here w/ encodePacked -> msg.sender + id? 
-        // @follow-up if mintAirdrops is frontrun, does this fail?
+        // @audit-ok collisions occur here w/ encodePacked -> msg.sender + id? 
         bytes32 node = keccak256(abi.encodePacked(msg.sender, id));
         bool isValidProof = MerkleProofUpgradeable.verifyCalldata(
             merkleProof,
@@ -75,6 +74,8 @@ contract HalbornNFT is
         _safeMint(msg.sender, idCounter, "");
     }
 
+    // @audit-ok if someone calls initialize() on the implementation contract, 
+    // they can set the owner to themselves and drain the contract
     function withdrawETH(uint256 amount) external onlyOwner {
         payable(owner()).transfer(amount);
     }
@@ -83,9 +84,9 @@ contract HalbornNFT is
     // https://docs.openzeppelin.com/contracts/4.x/api/proxy#UUPSUpgradeable-_authorizeUpgrade-address-:~:text=The%20_authorizeUpgrade%20function%20must%20be%20overridden%20to%20include%20access%20restriction%20to%20the%20upgrade%20mechanism.
     function _authorizeUpgrade(address) internal override {}
 
-    // @follow-up who can renounce ownership? (also the other contracts)
+    // @audit-ok who can renounce ownership? (also the other contracts)
     // ex: https://solodit.xyz/issues/contract-admin-can-revoke-and-renounce-himself-halborn-seascape-ninja-spin-pdf
 
-    // @follow-up can ownership be transferred?
-    // @follow-up can anyone call selfdestruct?
+    // @audit-ok can ownership be transferred?
+    // @audit-ok can anyone call selfdestruct?
 }

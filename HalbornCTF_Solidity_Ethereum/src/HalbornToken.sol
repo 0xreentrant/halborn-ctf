@@ -21,7 +21,7 @@ contract HalbornToken is
         _;
     }
 
-    // @audit initializers aren't disabled, anyone can call initialize on the implementation contract
+    // @audit-issue initializers aren't disabled, anyone can call initialize on the implementation contract
 
     function initialize() external initializer {
         __ERC20_init("HalbornToken", "HT");
