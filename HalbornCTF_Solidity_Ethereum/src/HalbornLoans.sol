@@ -70,7 +70,7 @@ contract HalbornLoans is Initializable, UUPSUpgradeable, MulticallUpgradeable {
     }
 
     function getLoan(uint256 amount) external {
-        // @audit the equality is reversed, making it "what is left of total collateral must be less than the amount being requested"
+        // @audit-issue the equality is reversed, making it "what is left of total collateral must be less than the amount being requested"
         // - should be >= 
         require(
             totalCollateral[msg.sender] - usedCollateral[msg.sender] < amount,

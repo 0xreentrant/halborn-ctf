@@ -5,7 +5,7 @@ import "forge-std/Test.sol";
 import {HalbornNFT} from "../src/HalbornNFT.sol";
 import {HalbornToken} from "../src/HalbornToken.sol";
 
-contract HalbornLoans {
+contract HalbornLoansFixedGetLoanInequality {
     // ... simplified for demo
 
     HalbornToken public token;
@@ -42,6 +42,7 @@ contract HalbornLoans {
     }
 
     function getLoan(uint256 amount) external {
+        // NOTE: fixed the inequality for the demo
         require(totalCollateral[msg.sender] - usedCollateral[msg.sender] >= amount, "Not enough collateral");
         usedCollateral[msg.sender] += amount;
         token.mintToken(msg.sender, amount);
@@ -57,14 +58,14 @@ contract HalbornTestReentrancy is Test {
 
     HalbornNFT public nft;
     HalbornToken public token;
-    HalbornLoans public loans;
+    HalbornLoansFixedGetLoanInequality public loans;
 
     function setUp() public {
         nft = new HalbornNFT();
         nft.initialize("", 1 ether);
         token = new HalbornToken();
         token.initialize();
-        loans = new HalbornLoans(2 ether); // incentivize reentrancy
+        loans = new HalbornLoansFixedGetLoanInequality(2 ether); // incentivize reentrancy
         loans.initialize(address(token), address(nft));
         token.setLoans(address(loans));
     }

