@@ -20,7 +20,7 @@ contract HalbornNFT is
     uint256 public price;
     uint256 public idCounter;
 
-    // @audit initializers aren't disabled, anyone can call initialize on the implementation contract
+    // @audit-issue initializers aren't disabled, anyone can call initialize on the implementation contract
 
     // @audit-ok the initialize function be called by anyone, thus `token` and `nft` can be set by anyone
     // - only an issue if the deploy mechanics are run non-atomically
